@@ -1,0 +1,45 @@
+<div th:fragment="navbar(active)">
+    <nav class="navbar navbar-expand-sm bg-body-secondary">
+        <div class="container-fluid ms-5">
+            <a class="navbar-brand" th:href="@{/}">BestGC</a>
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarNavAltMarkup"
+                aria-controls="navbarNavAltMarkup"
+                aria-expanded="false"
+                aria-label="Toggle navigation"
+            >
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a
+                        class="nav-link"
+                        aria-current="page"
+                        th:href="@{/}"
+                        th:classappend="${active == 'Profile'} ? 'active'"
+                    >
+                        Profile App
+                    </a>
+                    <a
+                        class="nav-link"
+                        th:href="@{/run_app}"
+                        th:classappend="${active == 'Run'} ? 'active'"
+                    >
+                        Run App
+                    </a>
+                    <a
+                        class="nav-link"
+                        aria-current="page"
+                        th:href="@{/dashboard}"
+                        th:classappend="${active == 'Dashboard'} ? 'active'"
+                    >
+                        Running Applications
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+</div>

@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "esnext",
+        "checkJs": true, // Enable checking for .js files
+        "allowJs": true, // Allow JavaScript files in the project
+        "strict": true, // Optional, for stricter type checking
+        "noEmit": true // Disable file output (no emitted .js files)
+    },
+    "include": ["./src/**/*.js"] // Include your JavaScript files
+}

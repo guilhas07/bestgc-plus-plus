@@ -1,0 +1,115 @@
+<h2>Benchmark Result</h2>
+<th:block th:switch="${profileAppResponse}" th:object="${profileAppResponse}">
+    <p th:case="null">Couldn't run benchmark.</p>
+    <th:block th:case="*">
+        <div class="container">
+            <div class="row">
+                <div class="col">
+                    <p th:text="*{'The BestGC is: ' +  bestGC}" />
+                    <p
+                        th:text="*{'Suggested Heap Size: ' +  heapSize + 'MB'}"
+                    />
+                    <p
+                        th:text="*{'Max HeapSize used: ' +  maxHeapSize + 'MB'}"
+                    />
+                    <p
+                        th:text="*{'Application is' + (cpuIntensive ? ' ' : ' not ') + 'CPU intensive'}"
+                    ></p>
+                    <p />
+                    <!-- <p th:unless="*{cpuIntensive}"> -->
+                    <!--     Application is not CPU intensive -->
+                    <!-- </p> -->
+                    <p th:text="*{'Average CPU Usage: ' + avgCpuUsage }" />
+                    <p
+                        th:text="*{'Average CPU Time Percentage: ' + avgCpuTime }"
+                    />
+                    <p
+                        th:text="*{'Average IO Time Percentage: ' + avgIoTime }"
+                    />
+                </div>
+                <div class="col">
+                    <p>Do you wish to run the application?</p>
+                    <form
+                        id="form"
+                        th:action="@{/run_app}"
+                        th:method="post"
+                        th:object="${runAppRequest}"
+                        enctype="multipart/form-data"
+                    >
+                        <label>Garbage Collector:</label>
+                        <!--/* 
+                                    NOTE: setting th:field seems to don't work when trying to set th:select
+                                    Solution: Set th:id and th:name manually 
+                                */-->
+                        <select id="garbageCollector" name="garbageCollector">
+                            <option
+                                th:each="gcOption : ${gcs}"
+                                th:name="${gcOption}"
+                                th:value="${gcOption}"
+                                th:text="${gcOption}"
+                                th:selected="${gcOption} eq *{gc}"
+                            />
+                        </select>
+                        <br />
+                        <br />
+                        <!-- <label>GC Args:</label> -->
+                        <!-- <input type="text" th:field="*{gcArgs}" /> -->
+                        <!-- <br /> -->
+                        <!-- <br /> -->
+                        <label>HeapSize:</label>
+                        <input type="number" th:field="*{heapSize}" required />
+                        <br />
+                        <br />
+
+                        <!-- <label>Custom Heap GC Policy:</label> -->
+                        <!-- <input type="text" th:field="*{customHeapGCPolicy}" /> -->
+                        <!-- <br /> -->
+                        <!-- <br /> -->
+
+                        <label>Jar:</label>
+                        <!--/* 
+                                    NOTE: setting th:field seems to don't work when trying to set th:select
+                                    Solution: Set id and name manually 
+                                */-->
+                        <select id="jar" name="jar">
+                            <option
+                                th:each="jarOption: ${jars}"
+                                th:name="${jarOption}"
+                                th:text="${jarOption}"
+                                th:value="${jarOption}"
+                                th:selected="${jarOption} eq *{jar}"
+                            />
+                        </select>
+                        <br />
+                        <br />
+
+                        <label>Args:</label>
+                        <input type="text" th:field="*{args}" />
+                        <br />
+                        <br />
+
+                        <!-- <label>Enable Log:</label> -->
+                        <!-- <input type="checkbox" th:field="*{enableLog}" /> -->
+                        <!-- <br /> -->
+                        <!-- <br /> -->
+                        <input type="submit" value="Submit" />
+                    </form>
+                </div>
+            </div>
+            <p />
+            <div class="row">
+                <script th:inline="javascript">
+                    let cpu_usage = [[*{cpuUsage}]];
+                    let io_time = [[*{ioTime}]];
+                    let cpu_time = [[*{cpuTime}]];
+                </script>
+                <div class="col">
+                    <canvas id="cpuUsageChart"></canvas>
+                </div>
+                <div class="col">
+                    <canvas id="timePercentageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</th:block>

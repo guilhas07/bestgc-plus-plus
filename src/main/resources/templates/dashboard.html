@@ -1,0 +1,37 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head th:replace="~{fragments/head}"></head>
+    <body style="display: none">
+        <div th:replace="~{fragments/nav :: navbar('Dashboard')}"></div>
+        <main id="apps" class="mt-3 container">
+            <div th:each="entry : ${apps}" th:id="'app-' + ${entry.key}">
+                <div class="row mb-3">
+                    <div
+                        class="col"
+                        th:text="'App: ' + ${entry.value.name()}"
+                    ></div>
+                    <div class="col align-self-end">
+                        <button
+                            class="btn btn-primary"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            th:attr="'data-bs-target'='#details-' + ${entry.key}"
+                        >
+                            Show more details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="collapse" th:id="'details-' + ${entry.key}">
+                    <div class="row mb-3">
+                        <div class="col" th:text="'ID: ' + ${entry.key}"></div>
+                        <div
+                            class="col"
+                            th:text="'Command: ' + ${entry.value.command()}"
+                        ></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>

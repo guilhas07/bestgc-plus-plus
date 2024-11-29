@@ -1,0 +1,105 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head th:replace="~{fragments/head}"></head>
+    <body style="display: none">
+        <div th:replace="~{fragments/nav :: navbar('Run')}"></div>
+
+        <main class="mt-3 container">
+            <h2>Run Application</h2>
+            <form
+                id="form-run-app"
+                th:action="@{/run_app}"
+                th:hx-post="@{/run_app}"
+                th:method="post"
+                th:object="${run}"
+                enctype="multipart/form-data"
+                hx-swap="outerHTML"
+            >
+                <h2 class="mb-3">Application Parameters</h2>
+                <div class="mb-3 form-floating">
+                    <select id="heapSizeSelection" class="form-select">
+                        <option
+                            th:each="heapSize: ${heapSizes}"
+                            th:name="${heapSize}"
+                            th:value="${heapSize}"
+                            th:text="${heapSize}"
+                        />
+                        <option value="Custom">Custom</option>
+                    </select>
+                    <label for="heapSizeSelection" class="form-label">
+                        Heap Size (MB)
+                    </label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input
+                        type="number"
+                        th:field="*{heapSize}"
+                        required
+                        class="form-control"
+                    />
+                    <label for="heapSize" class="form-label">
+                        Custom Heap Size Value (MB)
+                    </label>
+                </div>
+
+                <div class="mb-3 form-floating">
+                    <select th:field="*{gc}" class="form-select">
+                        <option
+                            th:each="gc: ${gcs}"
+                            th:name="${gc}"
+                            th:value="${gc}"
+                            th:text="${gc}"
+                        />
+                    </select>
+                    <label for="gc" class="form-label">Garbage Collector</label>
+                </div>
+                <div class="mb-3 form-floating">
+                    <select th:field="*{jar}" class="form-select">
+                        <option
+                            th:each="jar: ${jars}"
+                            th:name="${jar}"
+                            th:value="${jar}"
+                            th:text="${jar}"
+                        />
+                        <option value="Custom">Custom</option>
+                    </select>
+                    <label for="jar" class="form-label">App jar</label>
+                </div>
+                <div class="mb-3">
+                    <input
+                        type="file"
+                        accept=".jar"
+                        th:field="*{file}"
+                        class="form-control"
+                    />
+                </div>
+                <div class="mb-3 form-floating">
+                    <input
+                        type="text"
+                        th:field="*{args}"
+                        class="form-control"
+                    />
+                    <label for="args" class="form-label">App arguments</label>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        Submit
+                    </button>
+                </div>
+                <div class="mt-3 htmx-indicator d-flex justify-content-center">
+                    <div
+                        class="spinner-border me-1 htmx-indicator"
+                        role="status"
+                        style="width: 5rem; height: 5rem"
+                    ></div>
+                </div>
+            </form>
+        </main>
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+            crossorigin="anonymous"
+        ></script>
+    </body>
+</html>

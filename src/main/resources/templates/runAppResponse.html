@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Run App</title>
+    </head>
+    <body>
+        <th:block th:switch="${runAppResponse}" th:object="${runAppResponse}">
+            <p th:case="null">Couldn't run app.</p>
+            <p th:case="*">Running App</p>
+        </th:block>
+    </body>
+</html>
