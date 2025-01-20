@@ -1,11 +1,12 @@
 package pt.ulisboa.tecnico.web.ist196392.bestgcpp.service;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,18 +16,19 @@ public class MatrixService {
 
     Matrix matrix;
 
-    public MatrixService() {
+    @Autowired
+    public MatrixService(@Value("${gc-matrix-file}") String matrixFile) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            // var name = "HotSpot_11_10_0_19.json";
-            var name = "Graal_11_10_0_19.json";
-            System.out.println("Loading matrix file: " + name);
-            var matrixData = objectMapper.readValue(new File(name), FullMatrixData.class);
+            System.out.println("Loading matrix file: \"" + matrixFile + "\".");
+            var matrixData = objectMapper.readValue(new File(matrixFile), FullMatrixData.class);
 
             this.matrix = matrixData.matrix();
             System.out.println("Matrix: " + matrix);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            // NOTE: If matrix file doesn't load successfully abort execution.
             e.printStackTrace();
+            System.exit(1);
         }
     }
 
