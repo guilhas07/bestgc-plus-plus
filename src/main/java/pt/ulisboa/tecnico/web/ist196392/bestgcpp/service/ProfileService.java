@@ -20,18 +20,18 @@ import org.springframework.stereotype.Service;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.model.ProfileAppRequest;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.model.ProfileAppResponse;
 
+import pt.ulisboa.tecnico.web.ist196392.bestgcpp.exceptions.BenchmarkException;
+
 @Service
 public class ProfileService {
 
     @Autowired
     MatrixService matrixService;
 
-    // @Value("${monitoring-time}")
-    // private int monitoringTime;
-
     final private int profileInterval = 1;
 
     final private int CPU_CORES;
+    final private int CPU_INTENSIVE = 60;
 
     public ProfileService() {
         CPU_CORES = Runtime.getRuntime().availableProcessors();
@@ -48,13 +48,13 @@ public class ProfileService {
      * @param appPath           Path for application jar
      * @return ProfileAppResponse
      */
-    public synchronized Optional<ProfileAppResponse> profileApp(ProfileAppRequest profileAppRequest, String appPath) {
+    public synchronized ProfileAppResponse profileApp(ProfileAppRequest profileAppRequest, String appPath) {
 
         Process appProcess = null;
         ProfileAppResponse response = null;
 
         final int monitoringTime = profileAppRequest.monitoringTime();
-        System.out.println("Monotoring App with " + monitoringTime);
+        System.out.println("Monitoring App with " + monitoringTime);
 
         List<Float> cpuUsages;
         List<Float> ioTimes;
@@ -93,35 +93,32 @@ public class ProfileService {
                     cpuUsages.add(topResponse.cpuUsage());
                     ioTimes.add(topResponse.ioTime());
                     heapSizes.add(heapResponse.heapSize());
-                    // Double maxHeapUsage = statistics.getMaxHeapUsage() * 1.2 / 1024;
                 }
 
                 // The app is still running or finished with success
                 if (appProcess.isAlive() || appProcess.exitValue() == 0) {
-                    System.out.println("Profile endend. Process is Alive ?" + appProcess.isAlive());
+                    System.out.println("Profile ended. Process is Alive ?" + appProcess.isAlive());
                     break;
                 }
 
                 // App failed for every available heap size
                 if (appProcess.exitValue() != 0 && runId + 1 == matrixHeapSizes.length) {
-                    // TODO: create better exceptions
                     System.out.println("App failed for every available heap size");
                     System.out.println("Error: " + new String(appProcess.getErrorStream().readAllBytes()));
                     System.out.println("Output: " + new String(appProcess.getInputStream().readAllBytes()));
-                    // System.out.println(appProcess.getErrorStream())
-                    return Optional.empty();
+                    throw new BenchmarkException("Application failed for every available heap size.");
                 }
-                System.out.println("Retrying...");
-
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
+                throw new BenchmarkException("An error occurred during the Benchmark.");
             }
+            System.out.println("Retrying...");
+
         }
         Optional<Float> optMaxHeap = heapSizes.stream().max(Float::compare);
         if (optMaxHeap.isEmpty()) {
             System.out.println("[Error]: Application run successfully however no data was collected.");
-            return Optional.empty();
+            throw new BenchmarkException("Application run successfully however no data was collected.");
         }
 
         float maxHeap = optMaxHeap.get() / 1024;
@@ -139,8 +136,7 @@ public class ProfileService {
         float avgCpuTime = (float) Math.round(totalCpuTime / cpuUsages.size() * 100) / 100;
         float avgIoTime = (float) Math.round(totalIoTime / cpuUsages.size() * 100) / 100;
 
-        // TODO: use variable for cpu constant
-        boolean isCpuIntensive = totalCpuUsage / cpuUsages.size() >= 60;
+        boolean isCpuIntensive = totalCpuUsage / cpuUsages.size() >= CPU_INTENSIVE;
         BestGC bestGC = null;
         if (profileAppRequest.automaticMode()) {
             bestGC = matrixService.getBestGC(avgCpuUsage, maxHeapUsage);
@@ -156,7 +152,7 @@ public class ProfileService {
         if (appProcess != null && appProcess.isAlive())
             appProcess.destroy();
 
-        return Optional.of(response);
+        return response;
 
     }
 
@@ -174,7 +170,7 @@ public class ProfileService {
                 return new HeapCmdResponse(heapSize);
             }
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+            // Intentionally empty
             e.printStackTrace();
         }
         return null;
@@ -220,7 +216,7 @@ public class ProfileService {
                 return new TopCmdResponse(us, cpuUsage, wa);
             }
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+            // Intentionally empty
             e.printStackTrace();
         }
         return null;

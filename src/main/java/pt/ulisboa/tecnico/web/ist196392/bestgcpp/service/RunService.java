@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,20 +13,21 @@ import org.springframework.stereotype.Service;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.model.PollAppResponse;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.model.RunAppRequest;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.model.RunAppResponse;
+import pt.ulisboa.tecnico.web.ist196392.bestgcpp.exceptions.RunAppException;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.model.AppInfo;
 
 @Service
 public class RunService {
 
-    Map<Long, AppInfo> runningApps = new HashMap<>();
+    Map<Long, AppInfo> runningApps = new ConcurrentHashMap<>();
 
     @Autowired
     ProfileService profileService;
 
     public RunService() {
-        // TODO: remove
-        runningApps.put(0L, new AppInfo("teste", "teste 1 2 3 4"));
-        runningApps.put(1L, new AppInfo("teste2", "giro hello"));
+        // NOTE: To test frontend application with fake apps
+        // runningApps.put(0L, new AppInfo("teste", "teste 1 2 3 4"));
+        // runningApps.put(1L, new AppInfo("teste2", "giro hello"));
     }
 
     public RunAppResponse runApp(RunAppRequest runAppRequest) {
@@ -41,12 +43,12 @@ public class RunService {
             // of process Id uniqueness i.e., a previous app with this same pid is already
             // finished.
             runningApps.put(pid, new AppInfo(runAppRequest.jar(), command));
+            return new RunAppResponse();
 
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
+            throw new RunAppException();
         }
-        return new RunAppResponse();
     }
 
     public Map<Long, AppInfo> getApps() {
@@ -54,6 +56,8 @@ public class RunService {
             var id = entry.getKey();
             int exitCode;
             try {
+                // NOTE: Test if app is alive sending a -0 signal. If it is alive a exit code of
+                // 0 will be returned.
                 Process aliveCheck = Runtime.getRuntime().exec(new String[] { "kill", "-0", Long.toString(id) });
                 exitCode = aliveCheck.waitFor();
             } catch (IOException | InterruptedException e) {
@@ -86,15 +90,15 @@ public class RunService {
         if (!runningApps.containsKey(pid))
             return null;
 
-        // NOTE: for debugging purposes use reserved pids to test
-        if (pid == 1 || pid == 0) {
-            if (pid == 0) {
-                var val = runningApps.get(pid);
-                runningApps.put(pid, new AppInfo(val.command(), val.name()));
-            }
-            var info = runningApps.get(pid);
-            return new PollAppResponse(info.name(), info.command(), 0, 0, 0);
-        }
+        // NOTE: for debugging purposes use reserved pids to test. Uncomment to test.
+        // if (pid == 1 || pid == 0) {
+        // if (pid == 0) {
+        // var val = runningApps.get(pid);
+        // runningApps.put(pid, new AppInfo(val.command(), val.name()));
+        // }
+        // var info = runningApps.get(pid);
+        // return new PollAppResponse(info.name(), info.command(), 0, 0, 0);
+        // }
 
         var info = runningApps.get(pid);
         TopCmdResponse top = profileService.executeTop(pid);
@@ -110,22 +114,23 @@ public class RunService {
     }
 
     private String[] getExecJarCommand(RunAppRequest request) {
-        // TODO: can use string builder
-        String command = "java";
+        StringBuilder sb = new StringBuilder(100);
+        sb.append("java");
         String gc = request.gc();
-        command += gc != null ? " -XX:+Use" + gc + "GC" : "";
+        sb.append(gc != null ? " -XX:+Use" + gc + "GC" : "");
 
-        command += " -Xms" + request.heapSize() + "m";
-        command += " -Xmx" + request.heapSize() + "m";
+        sb.append(" -Xms" + request.heapSize() + "m");
+        sb.append(" -Xmx" + request.heapSize() + "m");
 
         // enable log
         System.out.println("Jar: " + request.jar());
 
         var index = request.jar().lastIndexOf(".");
 
-        command += " -Xlog:gc*,safepoint:file=" + request.jar().substring(0, index) + ".log::filecount=0";
-        command += " -jar " + "jars/" + request.jar() + " " + request.args();
+        sb.append(" -Xlog:gc*,safepoint:file=" + request.jar().substring(0, index) + ".log::filecount=0");
+        sb.append(" -jar " + "jars/" + request.jar() + " " + request.args());
 
+        String command = sb.toString();
         System.out.println("Command: " + command);
         return command.split(" ");
     }

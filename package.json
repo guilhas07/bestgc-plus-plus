@@ -1,4 +1,15 @@
 {
+  "name": "bestgc-plus-plus",
+  "version": "0.0.1",
+  "description": "",
+  "main": "",
+  "dependencies": {
+    "moment": "^2.30.1"
+  },
+  "scripts": {
+  },
+  "author": "Guilherme Soares",
+  "license": "MIT",
   "devDependencies": {
     "@types/chart.js": "^2.9.41"
   }

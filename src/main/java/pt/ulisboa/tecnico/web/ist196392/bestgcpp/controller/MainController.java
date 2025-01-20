@@ -10,11 +10,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import pt.ulisboa.tecnico.web.ist196392.bestgcpp.exceptions.BenchmarkException;
+import pt.ulisboa.tecnico.web.ist196392.bestgcpp.exceptions.FileCreationException;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.model.ProfileAppRequest;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.model.RunAppRequest;
 import pt.ulisboa.tecnico.web.ist196392.bestgcpp.service.MatrixService;
@@ -39,7 +43,14 @@ public class MainController {
     public MainController() {
     }
 
-    @GetMapping("/")
+    @ExceptionHandler({ FileCreationException.class, BenchmarkException.class })
+    public String fileCreationException(Model model, FileCreationException exception, HttpServletRequest request) {
+        model.addAttribute("message", exception.getMessage());
+        model.addAttribute("url", request.getRequestURI());
+        return "fragments/error";
+    }
+
+    @GetMapping(value = { "/", "/profile_app" })
     public String index(Model model) {
         System.out.println(monitoringTime);
         model.addAttribute("profile", new ProfileAppRequest(true, true, 1, 0, monitoringTime, null, null, null));
@@ -59,45 +70,36 @@ public class MainController {
             try {
                 Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
+                throw new FileCreationException();
             }
 
             // Create new profile request with the jar file name resolved
-            profileRequest = new ProfileAppRequest(profileRequest.automaticMode(), profileRequest.runApp(),
+            profileRequest = new ProfileAppRequest(profileRequest.automaticMode(),
+                    profileRequest.runApp(),
                     profileRequest.throughputWeight(), profileRequest.pauseTimeWeight(),
-                    profileRequest.monitoringTime(), file.getOriginalFilename(), profileRequest.args(), null);
+                    profileRequest.monitoringTime(), file.getOriginalFilename(),
+                    profileRequest.args(), null);
         }
 
-        var updateProfileRequest = profileRequest;
-        var optProfileResponse = profileService.profileApp(profileRequest, dest.toString());
-        var wrapper = new Object() {
-            boolean redirect = false;
-        };
-        optProfileResponse.ifPresentOrElse(
-                profileResponse -> {
-                    var runAppRequest = new RunAppRequest(updateProfileRequest.jar(), profileResponse.bestGC(),
-                            updateProfileRequest.args(), profileResponse.heapSize(), null);
-                    if (updateProfileRequest.runApp()) {
-                        runService.runApp(runAppRequest);
-                        wrapper.redirect = true;
-                        return;
-                    }
+        var profileResponse = profileService.profileApp(profileRequest, dest.toString());
+        var runAppRequest = new RunAppRequest(profileRequest.jar(), profileResponse.bestGC(),
+                profileRequest.args(), profileResponse.heapSize(), null);
 
-                    model.addAttribute("gcs", profileService.getGCs());
-                    model.addAttribute("jars", profileService.getJars());
-
-                    model.addAttribute("profileAppResponse", profileResponse);
-                    model.addAttribute("runAppRequest", runAppRequest);
-                },
-                () -> model.addAttribute("profileAppResponse", null));
-
-        if (wrapper.redirect) {
+        if (profileRequest.runApp()) {
+            runService.runApp(runAppRequest);
             // NOTE: to successfully redirect htmx form request inject a header
             // and use a empty template
             response.setHeader("HX-Redirect", "/dashboard");
             return "empty";
         }
+
+        model.addAttribute("gcs", profileService.getGCs());
+        model.addAttribute("jars", profileService.getJars());
+
+        model.addAttribute("profileAppResponse", profileResponse);
+        model.addAttribute("runAppRequest", runAppRequest);
+
         return "fragments/profileApp";
     }
 
@@ -111,7 +113,8 @@ public class MainController {
     }
 
     @PostMapping(value = "/run_app", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
-    public String runApplication(@ModelAttribute RunAppRequest runAppRequest, Model model) {
+    public String runApplication(@ModelAttribute RunAppRequest runAppRequest, Model model,
+            HttpServletResponse response) {
         System.out.println(runAppRequest);
 
         var file = runAppRequest.file();
@@ -121,14 +124,22 @@ public class MainController {
             try {
                 Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
+                throw new FileCreationException();
             }
+
+            // Create new profile request with the jar file name resolved
+            runAppRequest = new RunAppRequest(file.getOriginalFilename(), runAppRequest.gc(), runAppRequest.args(),
+
+                    runAppRequest.heapSize(), null);
         }
 
-        var response = runService.runApp(runAppRequest);
-        model.addAttribute("runAppResponse", response);
-        return "runAppResponse";
+        runService.runApp(runAppRequest);
+
+        // NOTE: to successfully redirect htmx form request inject a header
+        // and use a empty template
+        response.setHeader("HX-Redirect", "/dashboard");
+        return "empty";
     }
 
     @GetMapping(value = "/dashboard")
